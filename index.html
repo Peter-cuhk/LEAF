@@ -7,7 +7,7 @@
 <meta name="description" content="LEAF (Learning From Failure Benchmark): 40 manipulation tasks with hidden traps that test whether agent-as-policy robots notice, diagnose, and fix their own failures.">
 <meta property="og:title" content="LEAF: Do Agent-as-Policy Robots Notice and Fix Their Own Failures?">
 <meta property="og:description" content="40 trap-driven manipulation tasks, a fine-grained recovery evaluator, and 6.45M labeled replay steps with agent reasoning.">
-<meta property="og:image" content="static/img/fig1_overview.jpg">
+<meta property="og:image" content="static/img/fig1_overview.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M6 26C6 12 16 5 27 5c0 12-7 21-21 21z' fill='%233f7d5a'/><path d='M7 25L20 12' stroke='white' stroke-width='2'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,7 +81,7 @@ h3{font:600 18px/1.35 var(--sans);margin:0 0 6px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
 figure{margin:0}
 figure.fig{padding:14px;cursor:zoom-in}
-figure.fig img{border-radius:8px;background:#fff;margin:0 auto}
+figure.fig img{height:auto;border-radius:8px;background:#fff;margin:0 auto}
 figcaption{font-size:14px;color:var(--muted);padding:12px 4px 0}
 
 /* teaser */
@@ -166,7 +166,7 @@ tr.ours td{background:var(--accent-soft)}
 .big{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}
 .big div b{display:block;font:700 30px/1.1 var(--serif);color:var(--ink)}
 .big div span{font-size:13px;color:var(--muted)}
-.find img{border-radius:8px;background:#fff;cursor:zoom-in}
+.find img{height:auto;border-radius:8px;background:#fff;cursor:zoom-in}
 
 /* lite */
 .principles{display:grid;gap:12px}
@@ -238,7 +238,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
 <section id="overview">
   <div class="wrap">
     <div class="teaser">
-      <figure class="card fig"><img src="static/img/fig2_keyturn.jpg" alt="Key-turn task: blind retry repeats a stalled clockwise turn, learning from failure switches to counterclockwise" loading="lazy"><figcaption><b>Blind retry versus learning from failure.</b> The clockwise turn stalls. Repeating it fails again; the agent that reads the stall as evidence turns counterclockwise and opens the lock.</figcaption></figure>
+      <figure class="card fig"><img src="static/img/fig2_keyturn.webp" width="1658" height="1600" alt="Key-turn task: blind retry repeats a stalled clockwise turn, learning from failure switches to counterclockwise" loading="lazy"><figcaption><b>Blind retry versus learning from failure.</b> The clockwise turn stalls. Repeating it fails again; the agent that reads the stall as evidence turns counterclockwise and opens the lock.</figcaption></figure>
       <div>
         <div class="num">WHY LEAF</div>
         <h2>Slips can be retried. Traps have to be understood.</h2>
@@ -253,7 +253,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
       <div class="num" style="margin-bottom:12px">ABSTRACT</div>
       <p>General-purpose multimodal agents increasingly serve as robot policies that perceive, reason, and act through tools, but whether they use their own failures to improve subsequent actions remains unclear. Existing evaluations conflate clean execution with recovery, while success over repeated attempts can improve through resampling alone. We introduce LEAF (Learning From Failure Benchmark), comprising 40 manipulation tasks built around hidden traps that cannot be resolved by blindly repeating the initial strategy. LEAF supports interchangeable agent and robot harnesses above one MCP interface, while a fine-grained evaluator separates clean success, in-attempt repair, and cross-attempt recovery against memory-free controls. Evaluations establish causal diagnosis as the primary bottleneck for frontier agents: revealing the hidden cause largely eliminates their errors, while weaker agents struggle with diagnosis and execution. VLA and WAM policies show limited recovery after success-only fine-tuning. Retaining interaction history consistently outperforms memory-free retries, yet agents rarely restore undone subgoals and often rationalize subtle anomalies into false completion claims. LEAF-Lite, a prompt-only robot harness derived from these insights, achieves the highest first- and three-attempt success rates in our controlled harness comparison while reducing token use. We release the benchmark, code, interface, and over 6 million labeled replay frames with agent reasoning traces.</p>
     </div>
-    <figure class="card fig" style="margin-top:28px"><img src="static/img/fig1_overview.jpg" alt="LEAF at a glance: evaluation protocol, five failure causes, and evaluation results" loading="lazy"><figcaption><b>LEAF at a glance.</b> (a) Robot and agent harnesses are interchangeable above one MCP interface. (b) The five causes of first-attempt failure and a long-horizon task. (c) First-attempt success across causes for six models, and replay dataset statistics.</figcaption></figure>
+    <figure class="card fig" style="margin-top:28px"><img src="static/img/fig1_overview.png" width="2486" height="1526" alt="LEAF at a glance: evaluation protocol, five failure causes, and evaluation results" loading="lazy"><figcaption><b>LEAF at a glance.</b> (a) Robot and agent harnesses are interchangeable above one MCP interface. (b) The five causes of first-attempt failure and a long-horizon task. (c) First-attempt success across causes for six models, and replay dataset statistics.</figcaption></figure>
   </div>
 </section>
 
@@ -288,7 +288,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
       <p class="lead">Agents act through three MCP tools: <code>robot</code> (move_eef, observe, finish), <code>shell</code>, and <code>view_images</code>. Errors persist until the agent repairs them; the evaluator speaks only when the agent calls finish or the budget runs out. Up to three attempts, all in one session.</p>
     </div>
     <div class="two">
-      <figure class="card fig"><img src="static/img/fig3_protocol.jpg" alt="Protocol in action: an L3 rollout with GPT-6 Astra and Codex across two attempts" loading="lazy"><figcaption><b>Protocol in action.</b> The first attempt fails to place a thin card in the bin. After a reset with history retained, the agent slides the card to a free edge, grasps the overhang, and succeeds.</figcaption></figure>
+      <figure class="card fig"><img src="static/img/fig3_protocol.webp" width="2486" height="1195" alt="Protocol in action: an L3 rollout with GPT-6 Astra and Codex across two attempts" loading="lazy"><figcaption><b>Protocol in action.</b> The first attempt fails to place a thin card in the bin. After a reset with history retained, the agent slides the card to a free edge, grasps the overhang, and succeeds.</figcaption></figure>
       <div class="metrics">
         <div class="card metric"><div class="k">CS</div><p><b>Clean success.</b> First attempt, no error or correction.</p></div>
         <div class="card metric"><div class="k">IR</div><p><b>In-attempt recovery.</b> An error repaired within the first attempt.</p></div>
@@ -353,7 +353,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
           <p>Fresh agents restart from the same failed first attempts with progressively richer feedback. Told only that they failed, agents repeat the same flawed choice. When GPT and Opus miss the cause, 51% blame motion slips and 33% treat the anomaly as part of the scene.</p>
           <div class="big"><div><b>43% → 93%</b><span>Opus 5.5 recovery when told the hidden cause</span></div><div><b>29% → 71%</b><span>GPT-6 Astra</span></div></div>
         </div>
-        <img src="static/img/fig4_ladder.png" alt="Bar chart: success with feedback F1, F2, H+, Fix for Opus 5.5, Sonnet 5.5, GPT-6 Astra" loading="lazy">
+        <img src="static/img/fig4_ladder.webp" width="1522" height="852" alt="Bar chart: success with feedback F1, F2, H+, Fix for Opus 5.5, Sonnet 5.5, GPT-6 Astra" loading="lazy">
       </article>
       <article class="card find">
         <div>
@@ -378,7 +378,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
           <p>On visually subtle failures in Clear Cover and Fit Container, agents claim success on 85% of failed attempts. In 69% of these false claims by GPT-6 Astra and Opus 5.5, the agent noticed an anomaly and rationalized it. Only 14% inspect the scene after the final release; a verify-every-goal prompt lifts Opus from 0% to 13%, versus 88% when told the cause.</p>
           <div class="big"><div><b>85%</b><span>false completion claims on subtle failures</span></div><div><b>14%</b><span>inspect after final release</span></div></div>
         </div>
-        <img src="static/img/fig5_clear_cover.jpg" alt="Clear Cover: Opus 5.5 attributes a stalled descent to the box floor and later claims the task is done" loading="lazy">
+        <img src="static/img/fig5_clear_cover.webp" width="1554" height="1704" alt="Clear Cover: Opus 5.5 attributes a stalled descent to the box floor and later claims the task is done" loading="lazy">
       </article>
       <article class="card find has-fig">
         <div>
@@ -387,7 +387,7 @@ footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px sol
           <p>Memory-free retries help by avoiding earlier slips, lifting GPT-6 Astra from 45% to 62% and Opus 5.5 from 44% to 58%. Retaining history pushes the same models to 86% and 79%. Across paired runs, 20% of single-cause instances succeed only with history, versus 1% only without it.</p>
           <div class="big"><div><b>+24.5</b><span>Δ<sub>hist</sub> GPT-6 Astra</span></div><div><b>+21.6</b><span>Opus 5.5</span></div><div><b>+12.7</b><span>Sonnet 5.5</span></div><div><b>+10.8</b><span>DeepSeek</span></div></div>
         </div>
-        <img src="static/img/fig6_history.png" alt="Cumulative success after one, two, three attempts with history versus memory-free retries" loading="lazy">
+        <img src="static/img/fig6_history.webp" width="1554" height="893" alt="Cumulative success after one, two, three attempts with history versus memory-free retries" loading="lazy">
       </article>
     </div>
   </div>
