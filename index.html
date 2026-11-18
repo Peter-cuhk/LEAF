@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEAF Benchmark</title>
+<meta name="description" content="LEAF (Learning From Failure Benchmark): 40 manipulation tasks with hidden traps that test whether agent-as-policy robots notice, diagnose, and fix their own failures.">
+<meta property="og:title" content="LEAF: Do Agent-as-Policy Robots Notice and Fix Their Own Failures?">
+<meta property="og:description" content="40 trap-driven manipulation tasks, a fine-grained recovery evaluator, and 6.45M labeled replay steps with agent reasoning.">
+<meta property="og:image" content="static/img/fig1_overview.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M6 26C6 12 16 5 27 5c0 12-7 21-21 21z' fill='%233f7d5a'/><path d='M7 25L20 12' stroke='white' stroke-width='2'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ef; --ink:#18201b; --muted:#5b665f; --soft:#8a948d;
+  --line:#dde3de; --accent:#3f7d5a; --accent-ink:#2d5c41; --accent-soft:#e3efe7;
+  --fail:#c2553d; --fail-soft:#f7e3dd; --ok:#3f7d5a; --ok-soft:#dfeee4; --warn:#b7791f;
+  --l1:#4f7cac; --l2:#3f7d5a; --l3:#8a6bb8; --l4:#c2553d; --l5:#b7791f; --l6:#2f6f73;
+  --shadow:0 1px 2px rgba(24,32,27,.05),0 6px 24px rgba(24,32,27,.06);
+  --serif:"Source Serif 4",Georgia,serif; --sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1120px; --radius:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#171d19; --surface-2:#1e2520; --ink:#e8ece9; --muted:#a3ada6; --soft:#7d8780;
+  --line:#2b332e; --accent:#7fbf97; --accent-ink:#a6d6b8; --accent-soft:#1f3328;
+  --fail:#e2856f; --fail-soft:#3a2420; --ok:#7fbf97; --ok-soft:#1f3328;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25);}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#171d19; --surface-2:#1e2520; --ink:#e8ece9; --muted:#a3ada6; --soft:#7d8780;
+  --line:#2b332e; --accent:#7fbf97; --accent-ink:#a6d6b8; --accent-soft:#1f3328;
+  --fail:#e2856f; --fail-soft:#3a2420; --ok:#7fbf97; --ok-soft:#1f3328;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25);}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+img,video{max-width:100%;display:block}
+a{color:var(--accent-ink)}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 16px}
+@media(min-width:720px){.wrap{padding:0 32px}}
+
+/* nav */
+nav.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;align-items:center;gap:20px;height:56px}
+.brand{display:flex;align-items:center;gap:8px;font:700 18px/1 var(--serif);color:var(--ink);text-decoration:none;letter-spacing:.02em}
+.brand svg{width:22px;height:22px}
+.navlinks{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{font-size:14px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.navlinks a:hover,.navlinks a.on{color:var(--ink);background:var(--surface-2)}
+.themebtn{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;width:34px;height:34px;cursor:pointer;flex:none}
+
+/* hero */
+header.hero{padding:64px 0 40px;text-align:center}
+.kicker{display:inline-flex;gap:8px;align-items:center;font:500 13px/1 var(--sans);color:var(--accent-ink);background:var(--accent-soft);padding:7px 12px;border-radius:999px;margin-bottom:22px}
+h1{font:700 clamp(30px,5vw,52px)/1.12 var(--serif);margin:0 auto 14px;max-width:900px;letter-spacing:-.01em}
+h1 .leaf{color:var(--accent)}
+.sub{font-size:clamp(16px,2vw,19px);color:var(--muted);max-width:760px;margin:0 auto 22px}
+.authors{font-size:15px;color:var(--muted);margin-bottom:26px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:38px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font:600 14px/1 var(--sans);text-decoration:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn[aria-disabled="true"]{opacity:.55;cursor:default}
+.btn small{font-weight:500;color:inherit;opacity:.7}
+.btn svg{width:16px;height:16px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:880px;margin:0 auto}
+@media(min-width:720px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 12px}
+.stat b{display:block;font:700 28px/1.1 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+
+/* sections */
+section{padding:56px 0;border-top:1px solid var(--line)}
+.sec-head{margin-bottom:26px;max-width:780px}
+.num{font:500 13px/1 var(--mono);color:var(--accent-ink);letter-spacing:.06em;margin-bottom:10px}
+h2{font:700 clamp(24px,3.4vw,34px)/1.2 var(--serif);margin:0 0 10px}
+h3{font:600 18px/1.35 var(--sans);margin:0 0 6px}
+.lead{color:var(--muted);font-size:17px;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+figure{margin:0}
+figure.fig{padding:14px;cursor:zoom-in}
+figure.fig img{border-radius:8px;background:#fff;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);padding:12px 4px 0}
+
+/* teaser */
+.teaser{display:grid;gap:24px;align-items:center}
+@media(min-width:880px){.teaser{grid-template-columns:1.1fr .9fr}}
+.slips{display:grid;gap:12px}
+.slip{padding:18px 20px}
+.slip .tag{font:600 12px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.slip.s .tag{color:var(--soft)} .slip.t .tag{color:var(--fail)}
+.slip p{margin:0;color:var(--muted)}
+.abstract{padding:24px 26px;margin-top:8px}
+.abstract p{margin:0;font-size:16.5px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--sans);padding:5px 8px;border-radius:6px;color:#fff}
+.c-L1{background:var(--l1)}.c-L2{background:var(--l2)}.c-L3{background:var(--l3)}.c-L4{background:var(--l4)}.c-L5{background:var(--l5)}.c-L6{background:var(--l6)}
+
+/* causes */
+.causes{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:640px){.causes{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.causes{grid-template-columns:repeat(3,1fr)}}
+.cause{padding:18px 18px 16px}
+.cause h3{display:flex;align-items:center;gap:10px}
+.cause p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.cause .eg{font-size:13px;color:var(--soft);margin-top:8px}
+
+/* tabs / filters */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.tab{border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:7px 12px;border-radius:999px;font:500 14px/1 var(--sans);cursor:pointer}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* video gallery */
+.gallery{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.gallery{grid-template-columns:repeat(3,1fr)}}
+.vcard{overflow:hidden}
+.vcard video{width:100%;aspect-ratio:640/376;object-fit:cover;background:#222;cursor:zoom-in}
+.vmeta{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.vname{font-weight:600}
+.att{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.pill{font:600 11px/1 var(--mono);padding:4px 6px;border-radius:5px}
+.pill.F{background:var(--fail-soft);color:var(--fail)}.pill.S{background:var(--ok-soft);color:var(--ok)}
+.note{font-size:13px;color:var(--soft);margin-top:12px}
+
+/* protocol */
+.two{display:grid;gap:20px}
+@media(min-width:900px){.two{grid-template-columns:1.35fr 1fr;align-items:start}}
+.metrics{display:grid;gap:10px}
+.metric{padding:14px 16px;display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:start}
+.metric .k{font:700 18px/1.2 var(--mono);color:var(--accent-ink)}
+.metric p{margin:0;font-size:14.5px;color:var(--muted)}
+.metric b{color:var(--ink);font-weight:600}
+
+/* tables */
+.tblwrap{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+thead th{font:600 12.5px/1.2 var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:var(--surface-2);position:sticky;top:0}
+thead th.sort{cursor:pointer;user-select:none}
+thead th.sort:after{content:" ↕";opacity:.35}
+thead th.asc:after{content:" ↑";opacity:1}thead th.desc:after{content:" ↓";opacity:1}
+tbody tr:hover{background:var(--surface-2)}
+td.best{font-weight:700;color:var(--accent-ink)}
+td .bar{display:inline-block;height:6px;border-radius:3px;background:var(--accent);opacity:.7;vertical-align:middle;margin-right:8px}
+.fam{font-size:12px;color:var(--soft)}
+tr.ours td{background:var(--accent-soft)}
+.dash{color:var(--soft)}
+.stack{display:flex;height:22px;border-radius:6px;overflow:hidden;min-width:220px}
+.stack span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin:12px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* findings */
+.finds{display:grid;gap:16px}
+.find{padding:22px;display:grid;gap:18px}
+@media(min-width:880px){.find.has-fig{grid-template-columns:1fr 1fr;align-items:center}}
+.find .fn{font:500 12.5px/1 var(--mono);color:var(--accent-ink);margin-bottom:8px;letter-spacing:.05em}
+.find h3{font:600 20px/1.3 var(--serif);margin-bottom:10px}
+.find p{margin:0 0 10px;color:var(--muted);font-size:15.5px}
+.big{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}
+.big div b{display:block;font:700 30px/1.1 var(--serif);color:var(--ink)}
+.big div span{font-size:13px;color:var(--muted)}
+.find img{border-radius:8px;background:#fff;cursor:zoom-in}
+
+/* lite */
+.principles{display:grid;gap:12px}
+@media(min-width:880px){.principles{grid-template-columns:repeat(3,1fr)}}
+.pr{padding:18px}
+.pr .n{font:700 26px/1 var(--serif);color:var(--accent);margin-bottom:8px}
+.pr p{margin:0;color:var(--muted);font-size:15px}
+.pr .src{font-size:12.5px;color:var(--soft);margin-top:10px}
+.hbars{padding:20px;display:grid;gap:10px}
+.hb{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;font-size:14px}
+.hb .t{height:14px;border-radius:4px;background:var(--surface-2);position:relative;overflow:hidden}
+.hb .t i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--soft)}
+.hb.ours .t i{background:var(--accent)} .hb.ours{font-weight:600}
+.hb .v{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:520px){.hb{grid-template-columns:110px 1fr 46px;font-size:13px}}
+
+/* dataset */
+.dgrid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:880px){.dgrid{grid-template-columns:repeat(4,1fr)}}
+ul.clean{margin:0;padding-left:18px;color:var(--muted)} ul.clean li{margin:4px 0}
+
+/* bibtex */
+pre.bib{margin:0;padding:18px 20px;overflow-x:auto;font:13px/1.6 var(--mono);color:var(--ink);background:var(--surface-2);border-radius:var(--radius);border:1px solid var(--line)}
+.bibbox{position:relative}
+.copy{position:absolute;top:10px;right:10px}
+
+footer{padding:36px 0 48px;color:var(--soft);font-size:13.5px;border-top:1px solid var(--line)}
+
+/* lightbox */
+.lb{position:fixed;inset:0;background:rgba(10,14,12,.86);display:none;align-items:center;justify-content:center;z-index:100;padding:24px}
+.lb.on{display:flex}
+.lb img,.lb video{max-width:min(1400px,96vw);max-height:90vh;border-radius:10px;background:#fff}
+.lb button{position:absolute;top:14px;right:16px;background:none;border:0;color:#fff;font-size:30px;cursor:pointer}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#top"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26C6 12 16 5 27 5c0 12-7 21-21 21z" fill="currentColor" style="color:var(--accent)"/><path d="M7 25L20 12" stroke="var(--bg)" stroke-width="2"/></svg>LEAF</a>
+    <div class="navlinks">
+      <a href="#overview">Overview</a><a href="#tasks">Tasks</a><a href="#protocol">Protocol</a><a href="#leaderboard">Leaderboard</a><a href="#findings">Findings</a><a href="#lite">LEAF-Lite</a><a href="#data">Dataset</a><a href="#cite">Citation</a>
+    </div>
+    <button class="themebtn" id="theme" aria-label="Toggle dark mode" title="Toggle theme">◐</button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="kicker">Learning From Failure Benchmark</div>
+    <h1><span class="leaf">LEAF</span>: Do Agent-as-Policy Robots Notice and Fix Their Own Failures?</h1>
+    <p class="sub">Forty manipulation tasks built around hidden traps that blind retries cannot get past. LEAF measures whether an agent detects its failure, diagnoses the cause, and changes what it does.</p>
+    <div class="authors" id="authors">Anonymous authors · under review</div>
+    <div class="btns">
+      <a class="btn primary" aria-disabled="true" title="Coming soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Paper <small>soon</small></a>
+      <a class="btn" aria-disabled="true" title="Coming soon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.6 18.3 5 18.3 5c.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>Code <small>soon</small></a>
+      <a class="btn" aria-disabled="true" title="Coming soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Replay data <small>soon</small></a>
+      <a class="btn" href="#leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21V11M16 21V3M12 21v-6M4 21h16"/></svg>Leaderboard</a>
+      <a class="btn" href="#cite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h4v6H5v-2a4 4 0 0 1 2-4zM15 7h4v6h-6v-2a4 4 0 0 1 2-4z"/></svg>BibTeX</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>40</b><span>trap-driven tasks</span></div>
+      <div class="stat"><b>5 + L6</b><span>failure causes + long-horizon chains</span></div>
+      <div class="stat"><b>6.45M</b><span>labeled replay control steps</span></div>
+      <div class="stat"><b>3,303</b><span>trajectories with agent reasoning</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="overview">
+  <div class="wrap">
+    <div class="teaser">
+      <figure class="card fig"><img src="static/img/fig2_keyturn.jpg" alt="Key-turn task: blind retry repeats a stalled clockwise turn, learning from failure switches to counterclockwise" loading="lazy"><figcaption><b>Blind retry versus learning from failure.</b> The clockwise turn stalls. Repeating it fails again; the agent that reads the stall as evidence turns counterclockwise and opens the lock.</figcaption></figure>
+      <div>
+        <div class="num">WHY LEAF</div>
+        <h2>Slips can be retried. Traps have to be understood.</h2>
+        <p class="lead">Existing benchmarks report episode success, which mixes clean execution with recovery, and success over repeated attempts can rise through resampling alone. LEAF separates the two.</p>
+        <div class="slips" style="margin-top:18px">
+          <div class="card slip s"><div class="tag">Slip</div><p>A minor execution deviation, such as a missed grasp. Repeating the action usually fixes it.</p></div>
+          <div class="card slip t"><div class="tag">Trap</div><p>The policy's own prior fails under hidden conditions: mass distribution, friction, a transparent obstacle, or a later step that undoes an earlier one. Only a changed strategy gets past it.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="card abstract" style="margin-top:28px">
+      <div class="num" style="margin-bottom:12px">ABSTRACT</div>
+      <p>General-purpose multimodal agents increasingly serve as robot policies that perceive, reason, and act through tools, but whether they use their own failures to improve subsequent actions remains unclear. Existing evaluations conflate clean execution with recovery, while success over repeated attempts can improve through resampling alone. We introduce LEAF (Learning From Failure Benchmark), comprising 40 manipulation tasks built around hidden traps that cannot be resolved by blindly repeating the initial strategy. LEAF supports interchangeable agent and robot harnesses above one MCP interface, while a fine-grained evaluator separates clean success, in-attempt repair, and cross-attempt recovery against memory-free controls. Evaluations establish causal diagnosis as the primary bottleneck for frontier agents: revealing the hidden cause largely eliminates their errors, while weaker agents struggle with diagnosis and execution. VLA and WAM policies show limited recovery after success-only fine-tuning. Retaining interaction history consistently outperforms memory-free retries, yet agents rarely restore undone subgoals and often rationalize subtle anomalies into false completion claims. LEAF-Lite, a prompt-only robot harness derived from these insights, achieves the highest first- and three-attempt success rates in our controlled harness comparison while reducing token use. We release the benchmark, code, interface, and over 6 million labeled replay frames with agent reasoning traces.</p>
+    </div>
+    <figure class="card fig" style="margin-top:28px"><img src="static/img/fig1_overview.jpg" alt="LEAF at a glance: evaluation protocol, five failure causes, and evaluation results" loading="lazy"><figcaption><b>LEAF at a glance.</b> (a) Robot and agent harnesses are interchangeable above one MCP interface. (b) The five causes of first-attempt failure and a long-horizon task. (c) First-attempt success across causes for six models, and replay dataset statistics.</figcaption></figure>
+  </div>
+</section>
+
+<section id="tasks">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">TASKS</div>
+      <h2>Five failure causes, one hidden trap per task</h2>
+      <p class="lead">Each task pairs a LIBERO scene (Franka Panda, robosuite + MuJoCo) with a parametric sampler and a privileged evaluator. A privileged scripted policy proves every instance solvable; a standard policy without the hidden cause triggers the trap and fails.</p>
+    </div>
+    <div class="causes">
+      <div class="card cause"><h3><span class="chip c-L1">L1</span>Execution offset</h3><p>A hidden camera–gripper offset shifts every grasp.</p><div class="eg">Biased place · Height bias · Yaw bias</div></div>
+      <div class="card cause"><h3><span class="chip c-L2">L2</span>State restoration</h3><p>Later actions undo earlier progress; six tasks continue from the disturbed state instead of resetting.</p><div class="eg">Bridge · Bystander bottle · Turntable restore</div></div>
+      <div class="card cause"><h3><span class="chip c-L3">L3</span>Infeasible strategy</h3><p>The obvious approach is physically blocked.</p><div class="eg">Wall-flush box · Card edge · Key turn</div></div>
+      <div class="card cause"><h3><span class="chip c-L4">L4</span>Misjudged geometry</h3><p>Deceptive shapes or transparent obstacles.</p><div class="eg">Clear cover · False-bottom lid · Fit container</div></div>
+      <div class="card cause"><h3><span class="chip c-L5">L5</span>Misjudged physics</h3><p>Hidden mass distribution, surface friction, or compliance.</p><div class="eg">Off-centre push · Slide to target · Card on shelf</div></div>
+      <div class="card cause"><h3><span class="chip c-L6">L6</span>Long-horizon chains</h3><p>Six tasks chain several traps across physically coupled stages.</p><div class="eg">Order dispatch · Breakfast service · Parts cart</div></div>
+    </div>
+
+    <h3 style="margin:36px 0 12px">Rollouts</h3>
+    <div class="tabs" id="vtabs" role="tablist"></div>
+    <div class="gallery" id="gallery"></div>
+    <p class="note">GPT-6 Astra in Codex with retained history. Each clip shows the whole episode, every attempt, sped up (factor on each card). Top-left: agent view; right: wrist camera. Attempt pills show the evaluator's verdict per attempt; the agent sees only “Attempt failed.” after a failure.</p>
+  </div>
+</section>
+
+<section id="protocol">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">PROTOCOL</div>
+      <h2>Repair within the attempt first; reset only when needed</h2>
+      <p class="lead">Agents act through three MCP tools: <code>robot</code> (move_eef, observe, finish), <code>shell</code>, and <code>view_images</code>. Errors persist until the agent repairs them; the evaluator speaks only when the agent calls finish or the budget runs out. Up to three attempts, all in one session.</p>
+    </div>
+    <div class="two">
+      <figure class="card fig"><img src="static/img/fig3_protocol.jpg" alt="Protocol in action: an L3 rollout with GPT-6 Astra and Codex across two attempts" loading="lazy"><figcaption><b>Protocol in action.</b> The first attempt fails to place a thin card in the bin. After a reset with history retained, the agent slides the card to a free edge, grasps the overhang, and succeeds.</figcaption></figure>
+      <div class="metrics">
+        <div class="card metric"><div class="k">CS</div><p><b>Clean success.</b> First attempt, no error or correction.</p></div>
+        <div class="card metric"><div class="k">IR</div><p><b>In-attempt recovery.</b> An error repaired within the first attempt.</p></div>
+        <div class="card metric"><div class="k">XR</div><p><b>Cross-attempt recovery.</b> Fails first, succeeds on the second or third attempt.</p></div>
+        <div class="card metric"><div class="k">A1</div><p><b>Primary metric</b> = CS + IR: autonomous success without a human reset.</p></div>
+        <div class="card metric"><div class="k">A3</div><p>= A1 + XR: success within three attempts.</p></div>
+        <div class="card metric"><div class="k">Δ<sub>hist</sub></div><p>A3 with retained history minus A3 with memory-free retries (a fresh agent after each reset), isolating learning from resampling.</p></div>
+      </div>
+    </div>
+    <p class="note">Every episode runs in a network-isolated sandbox with only a clean workspace, the proprioceptive state, and the MCP socket; preflight checks lock prompts and tool schemas, and an audit verifies each tool call.</p>
+  </div>
+</section>
+
+<section id="leaderboard">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">LEADERBOARD</div>
+      <h2>Results under one protocol</h2>
+      <p class="lead">Agent-as-policy rows cover 120 instances (40 tasks × 3). VLA/WAM rows are fine-tuned on successful replays and tested on 31 held-out L2–L5 instances through a matched low-level interface. Click a column to sort.</p>
+    </div>
+    <div class="tabs" id="lbtabs" role="tablist">
+      <button class="tab on" data-v="main">Main results</button>
+      <button class="tab" data-v="outcomes">Outcome breakdown</button>
+      <button class="tab" data-v="robot">Robot harnesses</button>
+      <button class="tab" data-v="agent">Agent harnesses</button>
+    </div>
+    <div id="lb-main">
+      <div class="tabs" id="famtabs" style="margin-top:-6px">
+        <button class="tab on" data-f="all">All</button><button class="tab" data-f="agent">Agent-as-Policy</button><button class="tab" data-f="vla">VLA</button><button class="tab" data-f="wam">WAM</button>
+      </div>
+      <div class="card tblwrap"><table id="tmain"></table></div>
+      <p class="note">L1–L5: first-attempt success (A1, %). Direct-action policies bypass the L1 command-level perturbation, so L1 is not reported for them. Total tokens/run: input (incl. cached) + output, averaged over 120 instances with up to three attempts.</p>
+    </div>
+    <div id="lb-outcomes" hidden>
+      <div class="card tblwrap"><table id="tout"></table></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>CS clean success</span><span><i style="background:#8fc0a0"></i>IR in-attempt recovery</span><span><i style="background:var(--l5)"></i>XR cross-attempt recovery</span><span><i style="background:var(--fail-soft);border:1px solid var(--fail)"></i>F failure</span></div>
+      <p class="note">Share of 120 instances (L1–L6), no robot harness. Even top agents rarely succeed cleanly: most first-attempt successes contain an error repaired within the attempt.</p>
+    </div>
+    <div id="lb-robot" hidden>
+      <div class="card tblwrap"><table id="trobot"></table></div>
+      <p class="note">All rows run gpt-6.1-sol in Codex at high reasoning effort on 120 instances. Robot-harness ports follow the LEAF protocol (shared tasks, tools, scoring).</p>
+    </div>
+    <div id="lb-agent" hidden>
+      <div class="card tblwrap"><table id="tagent"></table></div>
+      <p class="note">Model fixed, no robot harness, 120 instances each. Success varies little across agent harnesses.</p>
+    </div>
+  </div>
+</section>
+
+<section id="findings">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">FINDINGS</div>
+      <h2>Why failures persist, and how agents recover</h2>
+      <p class="lead">Controlled feedback and event-level traces separate diagnosing a trap from executing the repair.</p>
+    </div>
+    <div class="finds">
+      <article class="card find has-fig">
+        <div>
+          <div class="fn">FINDING 1</div>
+          <h3>Diagnosing the hidden cause is the main bottleneck for frontier models.</h3>
+          <p>Fresh agents restart from the same failed first attempts with progressively richer feedback. Told only that they failed, agents repeat the same flawed choice. When GPT and Opus miss the cause, 51% blame motion slips and 33% treat the anomaly as part of the scene.</p>
+          <div class="big"><div><b>43% → 93%</b><span>Opus 5.5 recovery when told the hidden cause</span></div><div><b>29% → 71%</b><span>GPT-6 Astra</span></div></div>
+        </div>
+        <img src="static/img/fig4_ladder.png" alt="Bar chart: success with feedback F1, F2, H+, Fix for Opus 5.5, Sonnet 5.5, GPT-6 Astra" loading="lazy">
+      </article>
+      <article class="card find">
+        <div>
+          <div class="fn">FINDING 2</div>
+          <h3>Weaker models struggle with both diagnosis and physical execution.</h3>
+          <p>Even when told the hidden cause, Sonnet 5.5 succeeds in 61% of runs against 93% for Opus 5.5. The gap traces back to basic manipulation: Sonnet holds the object on its first grasp less than half as often. Active repair can offset low precision: GPT-6 Astra holds only 40% of first grasps yet matches Opus in A1 by fixing its own slips twice as often.</p>
+          <div class="big"><div><b>30% vs 68%</b><span>first grasp held, Sonnet vs Opus</span></div><div><b>61% vs 93%</b><span>success when told the cause</span></div></div>
+        </div>
+      </article>
+      <article class="card find">
+        <div>
+          <div class="fn">FINDING 3</div>
+          <h3>Agents rarely restore completed steps they accidentally undo.</h3>
+          <p>Across the 13 tasks that log subgoals, later actions break an earlier completed step, such as knocking placed blocks off their marks while closing a lid, in about a third of Opus 5.5 attempts and half of GPT-6 Astra and Sonnet 5.5 attempts. Once a subgoal is checked off, agents seldom look back.</p>
+          <div class="big"><div><b>10–32%</b><span>of attempts with an undone step restore all lost progress</span></div></div>
+        </div>
+      </article>
+      <article class="card find has-fig">
+        <div>
+          <div class="fn">FINDING 4</div>
+          <h3>Agents notice subtle anomalies yet explain them away and claim success.</h3>
+          <p>On visually subtle failures in Clear Cover and Fit Container, agents claim success on 85% of failed attempts. In 69% of these false claims by GPT-6 Astra and Opus 5.5, the agent noticed an anomaly and rationalized it. Only 14% inspect the scene after the final release; a verify-every-goal prompt lifts Opus from 0% to 13%, versus 88% when told the cause.</p>
+          <div class="big"><div><b>85%</b><span>false completion claims on subtle failures</span></div><div><b>14%</b><span>inspect after final release</span></div></div>
+        </div>
+        <img src="static/img/fig5_clear_cover.jpg" alt="Clear Cover: Opus 5.5 attributes a stalled descent to the box floor and later claims the task is done" loading="lazy">
+      </article>
+      <article class="card find has-fig">
+        <div>
+          <div class="fn">FINDING 5</div>
+          <h3>Retaining history consistently improves recovery over memory-free retries.</h3>
+          <p>Memory-free retries help by avoiding earlier slips, lifting GPT-6 Astra from 45% to 62% and Opus 5.5 from 44% to 58%. Retaining history pushes the same models to 86% and 79%. Across paired runs, 20% of single-cause instances succeed only with history, versus 1% only without it.</p>
+          <div class="big"><div><b>+24.5</b><span>Δ<sub>hist</sub> GPT-6 Astra</span></div><div><b>+21.6</b><span>Opus 5.5</span></div><div><b>+12.7</b><span>Sonnet 5.5</span></div><div><b>+10.8</b><span>DeepSeek</span></div></div>
+        </div>
+        <img src="static/img/fig6_history.png" alt="Cumulative success after one, two, three attempts with history versus memory-free retries" loading="lazy">
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="lite">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">LEAF-LITE</div>
+      <h2>Closing the loop with a prompt-only robot harness</h2>
+      <p class="lead">Keeping the agent harness and MCP tools fixed, we distill the findings into three rules. No extra orchestration code.</p>
+    </div>
+    <div class="principles">
+      <div class="card pr"><div class="n">1</div><h3>Probe before you commit</h3><p>Run small, reversible probes to test physical assumptions before irreversible actions.</p><div class="src">Findings 1, 4</div></div>
+      <div class="card pr"><div class="n">2</div><h3>Track subgoals cumulatively</h3><p>After each new subgoal, re-check every completed one; verify all goal states after release before calling finish.</p><div class="src">Findings 3, 4</div></div>
+      <div class="card pr"><div class="n">3</div><h3>Change a named, decisive choice</h3><p>After a failed attempt, write a brief factual note and change at least one decisive physical choice, not speed, force, or small offsets.</p><div class="src">Findings 1, 5</div></div>
+    </div>
+    <div class="two" style="margin-top:20px;grid-template-columns:1fr">
+      <div class="card hbars" id="litebars"></div>
+    </div>
+    <p class="note">gpt-6.1-sol in Codex, 120 instances. LEAF-Lite leads the controlled robot-harness comparison on A1 (52.5%) and A3 (90.0%) and uses about 30% fewer tokens per run than the direct baseline (3.5M vs 5.0M).</p>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">REPLAY DATASET</div>
+      <h2>Failures, repairs, and the reasoning behind them</h2>
+      <p class="lead">The full evaluation replay set in LeRobot format: failed rollouts, in-attempt repairs, cross-attempt recoveries, and the agents' recorded reasoning. Standardized interfaces and adapters for VLA and WAM policies are released alongside.</p>
+    </div>
+    <div class="dgrid">
+      <div class="stat card"><b>3,303</b><span>trajectories (1,043 successful, 2,260 failed)</span></div>
+      <div class="stat card"><b>2,272</b><span>evaluation runs</span></div>
+      <div class="stat card"><b>6.45M</b><span>control steps at 20 Hz</span></div>
+      <div class="stat card"><b>89.6 h</b><span>two-view RGB, proprioception, actions</span></div>
+    </div>
+    <div class="card" style="padding:20px 22px;margin-top:16px">
+      <h3>Integrated policies</h3>
+      <ul class="clean"><li>VLA: π0.5 and DM0.5-MEM</li><li>WAM: FastWAM and OpenWAM-α</li><li>Agent harnesses: Codex, Claude Code, DeepSeek Harness; robot harnesses: RPent, SenseNova-RoboRSI, EmbodiedEvo, LEAF-Lite</li></ul>
+    </div>
+  </div>
+</section>
+
+<section id="cite">
+  <div class="wrap">
+    <div class="sec-head"><div class="num">CITATION</div><h2>BibTeX</h2></div>
+    <div class="bibbox"><button class="btn copy" id="copy">Copy</button>
+<pre class="bib" id="bib">@misc{leaf2026,
+  title  = {LEAF: Do Agent-as-Policy Robots Notice and Fix Their Own Failures?},
+  author = {Anonymous},
+  year   = {2026},
+  note   = {Under review}
+}</pre></div>
+  </div>
+</section>
+
+<footer><div class="wrap">LEAF — Learning From Failure Benchmark. Simulation built on LIBERO, robosuite and MuJoCo. Page template inspired by public benchmark project pages.</div></footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true"><button aria-label="Close" id="lbx">×</button><div id="lbc"></div></div>
+
+<script src="static/videos.js"></script>
+<script>
+(function(){
+  // theme
+  var root=document.documentElement, tb=document.getElementById('theme');
+  try{var t=localStorage.getItem('leaf-theme'); if(t) root.setAttribute('data-theme',t);}catch(e){}
+  tb.onclick=function(){var dark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    var n=dark?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('leaf-theme',n);}catch(e){}};
+
+  // lightbox
+  var lb=document.getElementById('lb'), lbc=document.getElementById('lbc');
+  function open(node){lbc.innerHTML='';lbc.appendChild(node);lb.classList.add('on');}
+  function close(){lb.classList.remove('on');lbc.innerHTML='';}
+  document.getElementById('lbx').onclick=close; lb.onclick=function(e){if(e.target===lb)close();};
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+  document.querySelectorAll('figure.fig img, .find img').forEach(function(im){im.addEventListener('click',function(){var c=new Image();c.src=im.src;c.alt=im.alt;open(c);});});
+
+  // videos
+  var V=window.LEAF_VIDEOS||[], gal=document.getElementById('gallery'), vt=document.getElementById('vtabs');
+  var causes=['All','L1','L2','L3','L4','L5','L6'];
+  var io='IntersectionObserver' in window? new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;
+    if(e.isIntersecting){if(!v.src){v.src=v.dataset.src;} var p=v.play(); if(p&&p.catch)p.catch(function(){});} else v.pause();});},{rootMargin:'120px'}):null;
+  function render(f){gal.innerHTML='';V.filter(function(x){return f==='All'||x.cause===f;}).forEach(function(x){
+    var c=document.createElement('div');c.className='card vcard';
+    var v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');v.preload='none';v.poster=x.poster;v.dataset.src=x.video;
+    v.title='Click to enlarge';
+    v.addEventListener('click',function(){var b=document.createElement('video');b.src=x.video;b.controls=true;b.autoplay=true;b.muted=true;b.loop=true;b.playsInline=true;open(b);});
+    if(io)io.observe(v); else {v.src=x.video;}
+    var pills=x.attempts.map(function(a){return '<span class="pill '+(a.success?'S':'F')+'">A'+a.attempt+' '+(a.success?'✓':'✗')+'</span>';}).join('');
+    var m=document.createElement('div');m.className='vmeta';
+    m.innerHTML='<div class="vrow"><span class="vname">'+x.name+'</span><span class="chip c-'+x.cause+'">'+x.cause+'</span></div><div class="vrow"><span class="att">'+pills+'</span><span class="att">×'+x.speedup+'</span></div>';
+    c.appendChild(v);c.appendChild(m);gal.appendChild(c);});}
+  causes.forEach(function(k,i){var b=document.createElement('button');b.className='tab'+(i?'':' on');b.textContent=k==='All'?'All causes':k;b.onclick=function(){vt.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});b.classList.add('on');render(k);};vt.appendChild(b);});
+  render('All');
+
+  // leaderboard data (main paper Tables 1-4)
+  var MAIN=[
+    ['GPT-6 Astra','Codex','agent',88.9,70.0,91.7,20.0,33.3,50.0,86.7,4.3],
+    ['GPT-6.1-Sol','Codex','agent',88.9,70.0,83.3,20.0,25.0,47.5,75.0,5.0],
+    ['Opus 5.5','Claude Code','agent',100.0,66.7,75.0,20.0,33.3,47.5,82.5,4.5],
+    ['Sonnet 5.5','Claude Code','agent',44.4,36.7,66.7,13.3,19.4,26.7,54.2,6.4],
+    ['DeepSeek V4.1 Flash','Codex','agent',33.3,0.0,25.0,0.0,5.6,7.5,24.2,23.3],
+    ['GPT-5.6-Sol','Codex','agent',0.0,0.0,25.0,0.0,16.7,7.5,20.0,8.9],
+    ['π0.5 (SFT)','–','vla',null,0.0,25.0,0.0,8.3,6.5,22.6,null],
+    ['DM0.5-MEM (SFT)','–','vla',null,10.0,50.0,20.0,8.3,16.1,19.4,null],
+    ['FastWAM (SFT)','–','wam',null,10.0,25.0,0.0,0.0,6.5,6.5,null],
+    ['OpenWAM-α (SFT)','–','wam',null,0.0,50.0,20.0,0.0,9.7,19.4,null]];
+  var FAMN={agent:'Agent-as-Policy',vla:'VLA',wam:'WAM'};
+  var COLS=[['Policy','l'],['Harness','l'],['L1'],['L2'],['L3'],['L4'],['L5'],['A1'],['A3'],['Tokens/run']];
+  var sortK=7, sortD=-1, fam='all', tm=document.getElementById('tmain');
+  function fmt(v,suf){return v===null?'<span class="dash">–</span>':(suf?v.toFixed(1)+suf:v.toFixed(1));}
+  function drawMain(){
+    var rows=MAIN.filter(function(r){return fam==='all'||r[2]===fam;});
+    var idx=function(k){return k<2?k:k+1;};
+    rows.sort(function(a,b){var x=a[idx(sortK)],y=b[idx(sortK)];if(x===null)return 1;if(y===null)return -1;return (typeof x==='string'?x.localeCompare(y):(x-y))*sortD;});
+    var best={};[3,4,5,6,7,8,9].forEach(function(c){best[c]=Math.max.apply(null,rows.map(function(r){return r[c]===null?-1:r[c];}));});
+    var minTok=Math.min.apply(null,rows.filter(function(r){return r[10]!==null;}).map(function(r){return r[10];}));
+    var h='<thead><tr>'+COLS.map(function(c,i){var cls=(c[1]?'l ':'')+'sort'+(i===sortK?(sortD>0?' asc':' desc'):'');return '<th class="'+cls+'" data-k="'+i+'">'+c[0]+'</th>';}).join('')+'</tr></thead><tbody>';
+    rows.forEach(function(r){h+='<tr><td class="l"><b>'+r[0]+'</b><div class="fam">'+FAMN[r[2]]+'</div></td><td class="l">'+r[1]+'</td>';
+      for(var c=3;c<=9;c++){var v=r[c];var cls=(v!==null&&v===best[c]&&rows.length>1)?' class="best"':'';
+        h+='<td'+cls+'>'+(c===9?'<span class="bar" style="width:'+(v*0.6)+'px"></span>':'')+fmt(v)+'</td>';}
+      h+='<td'+(r[10]!==null&&r[10]===minTok?' class="best"':'')+'>'+(r[10]===null?'<span class="dash">–</span>':r[10].toFixed(1)+'M')+'</td></tr>';});
+    tm.innerHTML=h+'</tbody>';
+    tm.querySelectorAll('th.sort').forEach(function(th){th.onclick=function(){var k=+th.dataset.k;if(k===sortK)sortD=-sortD;else{sortK=k;sortD=(k<2||k===9)?1:-1;}drawMain();};});
+  }
+  drawMain();
+  document.querySelectorAll('#famtabs .tab').forEach(function(b){b.onclick=function(){document.querySelectorAll('#famtabs .tab').forEach(function(t){t.classList.remove('on');});b.classList.add('on');fam=b.dataset.f;drawMain();};});
+
+  var OUT=[['GPT-6 Astra',6.7,43.3,36.7,13.3],['GPT-6.1-Sol',5.0,42.5,27.5,25.0],['Opus 5.5',15.0,32.5,35.0,17.5],['Sonnet 5.5',3.3,23.3,27.5,45.8],['DeepSeek V4.1 Flash',0.0,7.5,16.7,75.8],['GPT-5.6-Sol',0.0,7.5,12.5,80.0]];
+  var to='<thead><tr><th>Agent</th><th class="l">Breakdown</th><th>CS</th><th>IR</th><th>XR</th><th>F</th></tr></thead><tbody>';
+  OUT.forEach(function(r){to+='<tr><td class="l"><b>'+r[0]+'</b></td><td class="l"><div class="stack" title="CS '+r[1]+' / IR '+r[2]+' / XR '+r[3]+' / F '+r[4]+'"><span style="width:'+r[1]+'%;background:var(--accent)"></span><span style="width:'+r[2]+'%;background:#8fc0a0"></span><span style="width:'+r[3]+'%;background:var(--l5)"></span><span style="width:'+r[4]+'%;background:var(--fail-soft)"></span></div></td><td>'+r[1].toFixed(1)+'</td><td>'+r[2].toFixed(1)+'</td><td>'+r[3].toFixed(1)+'</td><td>'+r[4].toFixed(1)+'</td></tr>';});
+  document.getElementById('tout').innerHTML=to+'</tbody>';
+
+  var ROB=[['None (direct)',47.5,75.0,5.0,25,22],['RPent',48.3,84.2,3.6,33,28],['SenseNova-RoboRSI',45.8,75.8,5.2,25,22],['EmbodiedEvo',49.2,79.2,5.3,50,28],['LEAF-Lite (ours)',52.5,90.0,3.5,60,14]];
+  var tr='<thead><tr><th>Robot harness</th><th>A1</th><th>A3</th><th>Tokens/run</th><th>Subgoal restoration ↑</th><th>False completion claims ↓</th></tr></thead><tbody>';
+  ROB.forEach(function(r,i){tr+='<tr'+(i===4?' class="ours"':'')+'><td class="l"><b>'+r[0]+'</b></td><td'+(i===4?' class="best"':'')+'>'+r[1].toFixed(1)+'</td><td'+(i===4?' class="best"':'')+'>'+r[2].toFixed(1)+'</td><td'+(i===4?' class="best"':'')+'>'+r[3].toFixed(1)+'M</td><td'+(i===4?' class="best"':'')+'>'+r[4]+'</td><td'+(i===4?' class="best"':'')+'>'+r[5]+'</td></tr>';});
+  document.getElementById('trobot').innerHTML=tr+'</tbody>';
+
+  var AG=[['DeepSeek V4.1 Flash','Codex',7.5,24.2,23.3],['','Claude Code',7.5,25.0,19.4],['','DeepSeek Harness',7.5,24.2,32.5],['Sonnet 5.5','Codex',25.0,51.7,7.5],['','Claude Code',26.7,54.2,6.4],['','DeepSeek Harness',24.2,49.2,7.3]];
+  var ta='<thead><tr><th>Model</th><th class="l">Agent harness</th><th>A1</th><th>A3</th><th>Tokens/run</th></tr></thead><tbody>';
+  AG.forEach(function(r){ta+='<tr><td class="l"><b>'+r[0]+'</b></td><td class="l">'+r[1]+'</td><td>'+r[2].toFixed(1)+'</td><td>'+r[3].toFixed(1)+'</td><td>'+r[4].toFixed(1)+'M</td></tr>';});
+  document.getElementById('tagent').innerHTML=ta+'</tbody>';
+
+  document.querySelectorAll('#lbtabs .tab').forEach(function(b){b.onclick=function(){document.querySelectorAll('#lbtabs .tab').forEach(function(t){t.classList.remove('on');});b.classList.add('on');
+    ['main','outcomes','robot','agent'].forEach(function(k){document.getElementById('lb-'+k).hidden=(k!==b.dataset.v);});};});
+
+  // LEAF-Lite bars (Table 3, A3)
+  var lb2=document.getElementById('litebars');
+  lb2.innerHTML='<h3 style="margin-bottom:6px">Three-attempt success (A3, %)</h3>'+ROB.map(function(r,i){return '<div class="hb'+(i===4?' ours':'')+'"><span>'+r[0]+'</span><span class="t"><i style="width:'+r[2]+'%"></i></span><span class="v">'+r[2].toFixed(1)+'</span></div>';}).join('')
+    +'<h3 style="margin:14px 0 6px">Total tokens per run (M, lower is better)</h3>'+ROB.map(function(r,i){return '<div class="hb'+(i===4?' ours':'')+'"><span>'+r[0]+'</span><span class="t"><i style="width:'+(r[3]/6*100)+'%"></i></span><span class="v">'+r[3].toFixed(1)+'M</span></div>';}).join('');
+
+  // copy bibtex
+  document.getElementById('copy').onclick=function(){var t=document.getElementById('bib').textContent,b=this;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1500);},function(){b.textContent='Select and copy';});};
+
+  // nav highlight
+  var links=[].slice.call(document.querySelectorAll('.navlinks a'));
+  if('IntersectionObserver' in window){var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id);});}});},{rootMargin:'-45% 0px -50% 0px'});
+    document.querySelectorAll('section[id]').forEach(function(s){so.observe(s);});}
+})();
+</script>
+</body>
+</html>
